@@ -38,11 +38,23 @@
     border-radius: var(--card-radius); box-shadow: 0 3px 10px rgba(0,0,0,0.05);
     border-top: 4px solid var(--theme-color);
   }
+  .card-title-row {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+  }
   .card-title {
     display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold;
-    color: var(--theme-dark); margin-bottom: 12px; letter-spacing: .03em;
+    color: var(--theme-dark); letter-spacing: .03em;
   }
   .card-title .material-icons { font-size: 16px; color: var(--theme-color); }
+
+  .icon-btn {
+    width: 28px; height: 28px; border-radius: 50%; border: none;
+    background: var(--theme-light); color: var(--theme-dark);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .icon-btn.amber { background: #FBF0DA; color: #8A6416; }
+  .icon-btn .material-icons { font-size: 16px; }
+  .icon-btn:active { transform: scale(0.92); }
 
   .field { margin-bottom: 12px; }
   .field:last-child { margin-bottom: 0; }
@@ -156,7 +168,9 @@
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="material-icons">person</span>入力者・日付</div>
+      <div class="card-title-row">
+        <div class="card-title"><span class="material-icons">person</span>入力者・日付</div>
+      </div>
       <div class="field">
         <label><span class="material-icons">apartment</span>センター</label>
         <select id="center"></select>
@@ -172,7 +186,9 @@
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="material-icons">local_shipping</span>件数</div>
+      <div class="card-title-row">
+        <div class="card-title"><span class="material-icons">local_shipping</span>件数</div>
+      </div>
       <div class="count-row">
         <div class="field">
           <label><span class="material-icons">storefront</span>店</label>
@@ -196,7 +212,12 @@
     <div id="result" class="result"></div>
 
     <div id="attendanceCard" class="card" style="display:none; border-top-color: var(--amber);">
-      <div class="card-title"><span class="material-icons">groups</span>出勤・ヘルプ人数</div>
+      <div class="card-title-row">
+        <div class="card-title"><span class="material-icons">groups</span>出勤・ヘルプ人数</div>
+        <button id="clearSundayBtn" class="icon-btn amber" title="今月の日曜(未入力分)を空欄にする">
+          <span class="material-icons">weekend</span>
+        </button>
+      </div>
       <div class="count-row">
         <div class="field">
           <label>出勤</label>
@@ -208,7 +229,7 @@
         </div>
       </div>
       <button id="attendanceSubmitBtn" class="in-card-btn" style="background:var(--amber);">出勤・ヘルプ人数を登録</button>
-      <button id="attendanceHistoryBtn" class="sub-history-btn amber"><span class="material-icons">fact_check</span>出勤・ヘルプ人数の入力状況を確認</button>
+      <button id="attendanceHistoryBtn" class="sub-history-btn amber"><span class="material-icons">fact_check</span>選択月の入力状況を確認</button>
       <div id="attendanceHistoryContainer" class="history-container">
         <div id="attendanceHistoryContent"></div>
       </div>
@@ -233,7 +254,7 @@
   </div>
 
 <script>
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwGHSHQ1ok5LM1S9NoBHnFqEgAl929XMq0AmtE9IyIUNjYwBQSO_dARE0P2kwtV_TYDyw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbybeQ6GjTnpjULthP_6eyK3PazA2LSQ0OKZiWpD3PC4xQSDFGQf9qcfhluD7-VvWPZXAg/exec';
   const GOOGLE_CLIENT_ID = '10544617656-amo7voanjtnl8pj88kvg269ihq4c8gcq.apps.googleusercontent.com';
   const DEFAULT_CENTER = '天理';
 
@@ -421,7 +442,7 @@
     document.getElementById('historyContainer').style.display = 'none';
     document.getElementById('historyBtn').innerHTML = '<span class="material-icons">fact_check</span>選択月の入力状況を確認';
     document.getElementById('attendanceHistoryContainer').style.display = 'none';
-    document.getElementById('attendanceHistoryBtn').innerHTML = '<span class="material-icons">fact_check</span>出勤・ヘルプ人数の入力状況を確認';
+    document.getElementById('attendanceHistoryBtn').innerHTML = '<span class="material-icons">fact_check</span>選択月の入力状況を確認';
   }
 
   // ===== 出勤・ヘルプ人数フォーム =====
@@ -493,12 +514,16 @@
         let html = '';
         list.forEach(item => {
           let badge = '';
-          if (item.status === '未入力') {
+          let rowStyle = '';
+          if (item.status === '休み') {
+            badge = '<span style="color:#aaa; border:1px solid #ddd; padding:2px 6px; border-radius:4px; font-size:11px;">休み</span>';
+            rowStyle = 'opacity: 0.6; background: #fafafa;';
+          } else if (item.status === '未入力') {
             badge = '<span style="color:#d93025; border:1px solid #fce8e6; background:#fce8e6; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">未入力</span>';
           } else {
             badge = '<span style="color:#188038; border:1px solid #ceead6; background:#ceead6; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">済</span>';
           }
-          html += `<div class="history-item">
+          html += `<div class="history-item" style="${rowStyle}">
                      <div class="history-date">${item.month}/${item.day}</div>
                      <div class="history-badge">${badge}</div>
                      <div class="history-details">
@@ -513,9 +538,41 @@
       }
     } else {
       container.style.display = 'none';
-      btn.innerHTML = '<span class="material-icons">fact_check</span>出勤・ヘルプ人数の入力状況を確認';
+      btn.innerHTML = '<span class="material-icons">fact_check</span>選択月の入力状況を確認';
     }
   }
+
+  // ===== 日曜一括空欄化 =====
+  document.getElementById('clearSundayBtn').addEventListener('click', async () => {
+    const dateStr = document.getElementById('dateStr').value;
+    const baseDate = new Date(dateStr);
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+
+    const sundays = [];
+    for (let d = 1; d <= lastDate; d++) {
+      if (new Date(year, month, d).getDay() === 0) sundays.push(d);
+    }
+    if (sundays.length === 0) { alert('この月に日曜日がありません'); return; }
+
+    if (!confirm((month + 1) + '月の日曜(' + sundays.length + '日)のうち、未入力(0/0)の日を空欄にします。よろしいですか？')) return;
+
+    const btn = document.getElementById('clearSundayBtn');
+    btn.disabled = true;
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ type: 'clearSundays', center: document.getElementById('center').value, month: month + 1, days: sundays })
+      });
+      const json = await res.json();
+      alert(json.ok ? json.data.detail : 'エラー: ' + json.error);
+    } catch(err) {
+      alert('通信エラー: ' + err.message);
+    }
+    btn.disabled = false;
+  });
 
   // ===== 休日登録カレンダー =====
   document.getElementById('holidayBtn').addEventListener('click', () => {
