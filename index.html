@@ -73,6 +73,15 @@
   .in-card-btn:active { transform: scale(0.97); background: var(--theme-dark); }
   .in-card-btn:disabled { background: #bbb; box-shadow: none; }
 
+  .sub-history-btn {
+    width: 100%; margin-top: 10px; padding: 10px; font-size: 13px; font-weight: bold;
+    background: transparent; border-radius: 22px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .sub-history-btn.theme { color: var(--theme-dark); border: 2px solid var(--theme-color); }
+  .sub-history-btn.amber { color: #8A6416; border: 2px solid var(--amber); }
+  .sub-history-btn:active { background: var(--theme-light); }
+
   .result {
     margin-top: 14px; padding: 13px 16px; border-radius: var(--card-radius); font-size: 13.5px;
     display: none; line-height: 1.6;
@@ -86,15 +95,16 @@
 
   #attendanceCard { margin-top: 20px; }
 
-  #historyBtn {
-    width: 100%; padding: 12px; margin-top: 20px; font-size: 14px; font-weight: bold;
+  .outer-btn {
+    width: 100%; padding: 12px; margin-top: 12px; font-size: 14px; font-weight: bold;
     color: var(--theme-dark); background: transparent; border: 2px solid var(--theme-color);
     border-radius: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
     transition: 0.2s;
   }
-  #historyBtn:active { background: var(--theme-light); }
+  .outer-btn:active { background: var(--theme-light); }
+
   .history-container {
-    margin-top: 14px; background: #fff; border-radius: var(--card-radius);
+    margin-top: 10px; background: #fff; border-radius: var(--card-radius);
     padding: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.05); display: none;
     max-height: 400px; overflow-y: auto;
   }
@@ -108,19 +118,11 @@
   .history-details { display: flex; gap: 8px; color: #555; flex: 1; justify-content: flex-end; }
   .history-details span { background: var(--theme-light); padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: bold;}
 
-  #holidayBtn {
-    width: 100%; padding: 12px; margin-top: 10px; font-size: 14px; font-weight: bold;
-    color: var(--theme-dark); background: transparent; border: 2px solid var(--theme-color);
-    border-radius: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
-  }
-  #holidayBtn:active { background: var(--theme-light); }
   .cal-month-label {
     text-align: center; font-size: 13px; font-weight: bold; color: var(--theme-dark); margin-bottom: 10px;
   }
   .cal-weekday-row { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; margin-bottom: 6px; }
-  .cal-weekday-row span {
-    text-align: center; font-size: 11px; font-weight: bold; color: #999;
-  }
+  .cal-weekday-row span { text-align: center; font-size: 11px; font-weight: bold; color: #999; }
   .cal-weekday-row span.sun { color: #d9534f; }
   .cal-weekday-row span.sat { color: #4B9CB3; }
   .cal-day {
@@ -129,6 +131,16 @@
   }
   .cal-day.checked { background: var(--theme-color); color: #fff; border-color: var(--theme-color); }
   .cal-day.empty { visibility: hidden; }
+
+  .bulk-row {
+    display: flex; align-items: center; gap: 6px; padding: 8px 0; border-bottom: 1px dashed #eee;
+  }
+  .bulk-row .bulk-day {
+    width: 62px; font-size: 12px; font-weight: bold; color: var(--theme-dark); flex-shrink: 0;
+  }
+  .bulk-row select {
+    min-height: 40px; padding: 8px 2px; font-size: 13px; border-radius: 10px; text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -176,6 +188,10 @@
         </div>
       </div>
       <button id="submitBtn" class="in-card-btn">登録する</button>
+      <button id="historyBtn" class="sub-history-btn theme"><span class="material-icons">fact_check</span>選択月の入力状況を確認</button>
+      <div id="historyContainer" class="history-container">
+        <div id="historyContent"></div>
+      </div>
     </div>
     <div id="result" class="result"></div>
 
@@ -192,14 +208,13 @@
         </div>
       </div>
       <button id="attendanceSubmitBtn" class="in-card-btn" style="background:var(--amber);">出勤・ヘルプ人数を登録</button>
+      <button id="attendanceHistoryBtn" class="sub-history-btn amber"><span class="material-icons">fact_check</span>出勤・ヘルプ人数の入力状況を確認</button>
+      <div id="attendanceHistoryContainer" class="history-container">
+        <div id="attendanceHistoryContent"></div>
+      </div>
     </div>
 
-    <button id="historyBtn"><span class="material-icons">fact_check</span>選択月の入力状況を確認</button>
-    <div id="historyContainer" class="history-container">
-      <div id="historyContent"></div>
-    </div>
-
-    <button id="holidayBtn"><span class="material-icons">event_busy</span>休日登録</button>
+    <button id="holidayBtn" class="outer-btn"><span class="material-icons">event_busy</span>休日登録</button>
     <div id="holidayContainer" class="history-container">
       <div class="cal-month-label" id="calMonthLabel"></div>
       <div class="cal-weekday-row">
@@ -208,12 +223,19 @@
       <div id="holidayCalendar" style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:12px;"></div>
       <button id="holidaySubmitBtn" class="in-card-btn">選択した日を休日にする</button>
     </div>
+
+    <button id="bulkBtn" class="outer-btn"><span class="material-icons">edit_calendar</span>一括件数入力</button>
+    <div id="bulkContainer" class="history-container">
+      <div class="cal-month-label" id="bulkMonthLabel"></div>
+      <div id="bulkList" style="display:flex; flex-direction:column;"></div>
+      <button id="bulkSubmitBtn" class="in-card-btn">この内容で登録する</button>
+    </div>
   </div>
 
 <script>
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxuSCvv8WmFr7_YiWsLRbtKfCKfsosNJtf1TqVvEqY0O0_wWPAI0PhSjgEFiqaBz9KfxQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwGHSHQ1ok5LM1S9NoBHnFqEgAl929XMq0AmtE9IyIUNjYwBQSO_dARE0P2kwtV_TYDyw/exec';
   const GOOGLE_CLIENT_ID = '10544617656-amo7voanjtnl8pj88kvg269ihq4c8gcq.apps.googleusercontent.com';
-  const DEFAULT_CENTER = '松原';
+  const DEFAULT_CENTER = '天理';
 
   function fillCountSelect(id){
     const sel = document.getElementById(id);
@@ -398,6 +420,8 @@
   function resetHistoryUI() {
     document.getElementById('historyContainer').style.display = 'none';
     document.getElementById('historyBtn').innerHTML = '<span class="material-icons">fact_check</span>選択月の入力状況を確認';
+    document.getElementById('attendanceHistoryContainer').style.display = 'none';
+    document.getElementById('attendanceHistoryBtn').innerHTML = '<span class="material-icons">fact_check</span>出勤・ヘルプ人数の入力状況を確認';
   }
 
   // ===== 出勤・ヘルプ人数フォーム =====
@@ -438,6 +462,60 @@
     }
     btn.disabled = false; btn.innerText = '出勤・ヘルプ人数を登録';
   });
+
+  document.getElementById('attendanceHistoryBtn').addEventListener('click', toggleAttendanceHistory);
+
+  async function toggleAttendanceHistory() {
+    const container = document.getElementById('attendanceHistoryContainer');
+    const content = document.getElementById('attendanceHistoryContent');
+    const btn = document.getElementById('attendanceHistoryBtn');
+
+    if (container.style.display === 'none' || container.style.display === '') {
+      container.style.display = 'block';
+      content.innerHTML = '<div style="text-align:center;color:#888;padding:10px;">読み込み中...</div>';
+      btn.innerHTML = '<span class="material-icons">expand_less</span>入力を閉じる';
+
+      const center = document.getElementById('center').value;
+      const dateStr = document.getElementById('dateStr').value;
+
+      try {
+        const res = await fetch(API_URL + '?action=attendanceHistory&center=' + encodeURIComponent(center) + '&date=' + encodeURIComponent(dateStr));
+        const json = await res.json();
+        if(!json.ok){
+          content.innerHTML = `<div style="color:#a33;padding:10px;">エラー: ${json.error}</div>`;
+          return;
+        }
+        const list = json.data;
+        if (list.length === 0) {
+          content.innerHTML = '<div style="text-align:center;color:#888;padding:10px;">データが見つかりません</div>';
+          return;
+        }
+        let html = '';
+        list.forEach(item => {
+          let badge = '';
+          if (item.status === '未入力') {
+            badge = '<span style="color:#d93025; border:1px solid #fce8e6; background:#fce8e6; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">未入力</span>';
+          } else {
+            badge = '<span style="color:#188038; border:1px solid #ceead6; background:#ceead6; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">済</span>';
+          }
+          html += `<div class="history-item">
+                     <div class="history-date">${item.month}/${item.day}</div>
+                     <div class="history-badge">${badge}</div>
+                     <div class="history-details">
+                       <span>出勤:${item.attendance}</span>
+                       <span>ヘルプ:${item.helpCount}</span>
+                     </div>
+                   </div>`;
+        });
+        content.innerHTML = html;
+      } catch(err) {
+        content.innerHTML = `<div style="color:#a33;padding:10px;">通信エラー: ${err.message}</div>`;
+      }
+    } else {
+      container.style.display = 'none';
+      btn.innerHTML = '<span class="material-icons">fact_check</span>出勤・ヘルプ人数の入力状況を確認';
+    }
+  }
 
   // ===== 休日登録カレンダー =====
   document.getElementById('holidayBtn').addEventListener('click', () => {
@@ -492,6 +570,8 @@
       .map(el => Number(el.dataset.day));
     if (checkedDays.length === 0) { alert('日付を選択してください'); return; }
 
+    if (!confirm(checkedDays.length + '日分を休日として登録します。よろしいですか？')) return;
+
     const dates = checkedDays.map(d => {
       const dt = new Date(year, month, d);
       return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
@@ -513,6 +593,94 @@
       alert('通信エラー: ' + err.message);
     }
     btn.disabled = false; btn.innerText = '選択した日を休日にする';
+  });
+
+  // ===== 一括件数入力 =====
+  document.getElementById('bulkBtn').addEventListener('click', () => {
+    const container = document.getElementById('bulkContainer');
+    if (container.style.display === 'block') { container.style.display = 'none'; return; }
+    if (!document.getElementById('memberName').value) { alert('メンバーを選択してください'); return; }
+    container.style.display = 'block';
+    renderBulkList();
+  });
+
+  function blankCountOptions(){
+    let html = '<option value="">-</option>';
+    for(let i=0;i<=10;i++) html += `<option value="${i}">${i}</option>`;
+    return html;
+  }
+
+  function renderBulkList(){
+    const dateStr = document.getElementById('dateStr').value;
+    const baseDate = new Date(dateStr);
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+    const lastDate = new Date(year, month+1, 0).getDate();
+    const weekdayNames = ['日','月','火','水','木','金','土'];
+
+    document.getElementById('bulkMonthLabel').innerText = year + '年' + (month+1) + '月';
+
+    const list = document.getElementById('bulkList');
+    list.innerHTML = '';
+    for(let d=1; d<=lastDate; d++){
+      const wd = new Date(year, month, d).getDay();
+      const row = document.createElement('div');
+      row.className = 'bulk-row';
+      row.dataset.day = d;
+      row.innerHTML =
+        '<div class="bulk-day">' + d + '日(' + weekdayNames[wd] + ')</div>' +
+        '<select class="bulk-store">' + blankCountOptions() + '</select>' +
+        '<select class="bulk-riyaku">' + blankCountOptions() + '</select>' +
+        '<select class="bulk-tojitsu">' + blankCountOptions() + '</select>';
+      list.appendChild(row);
+    }
+  }
+
+  document.getElementById('bulkSubmitBtn').addEventListener('click', async () => {
+    const memberName = document.getElementById('memberName').value;
+    if (!memberName) { alert('メンバーを選択してください'); return; }
+
+    const dateStr = document.getElementById('dateStr').value;
+    const baseDate = new Date(dateStr);
+    const month = baseDate.getMonth() + 1;
+
+    const rows = document.querySelectorAll('#bulkList .bulk-row');
+    const entries = [];
+    rows.forEach(row => {
+      const store = row.querySelector('.bulk-store').value;
+      const riyaku = row.querySelector('.bulk-riyaku').value;
+      const tojitsu = row.querySelector('.bulk-tojitsu').value;
+      if (store !== '' || riyaku !== '' || tojitsu !== '') {
+        entries.push({ day: Number(row.dataset.day), store, riyaku, tojitsu });
+      }
+    });
+
+    if (entries.length === 0) { alert('入力された日がありません'); return; }
+    if (!confirm(entries.length + '日分を登録します。よろしいですか？')) return;
+
+    const btn = document.getElementById('bulkSubmitBtn');
+    btn.disabled = true; btn.innerText = '登録中...';
+
+    const data = {
+      type: 'bulk',
+      center: document.getElementById('center').value,
+      memberName,
+      month,
+      entries
+    };
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      alert(json.ok ? json.data.detail : 'エラー: ' + json.error);
+      if (json.ok) document.getElementById('bulkContainer').style.display = 'none';
+    } catch(err) {
+      alert('通信エラー: ' + err.message);
+    }
+    btn.disabled = false; btn.innerText = 'この内容で登録する';
   });
 
   // ===== Googleログイン関連(センター+名前を自動選択) =====
@@ -552,7 +720,7 @@
 
     const res = await fetch(API_URL + '?action=matchMember&email=' + encodeURIComponent(email));
     const json = await res.json();
-    const matched = json.ok ? json.data : null; // { center, name } または null
+    const matched = json.ok ? json.data : null;
 
     if (matched) {
       loginStatus.innerText = 'ログイン中: ' + matched.center + ' / ' + matched.name + ' さん';
