@@ -85,14 +85,16 @@
   .in-card-btn:active { transform: scale(0.97); background: var(--theme-dark); }
   .in-card-btn:disabled { background: #bbb; box-shadow: none; }
 
-  .sub-history-btn {
-    width: 100%; margin-top: 10px; padding: 10px; font-size: 13px; font-weight: bold;
+  .sub-btn-row { display: flex; gap: 8px; margin-top: 10px; }
+  .sub-btn {
+    flex: 1; padding: 10px 4px; font-size: 12.5px; font-weight: bold;
     background: transparent; border-radius: 22px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
+    display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
   }
-  .sub-history-btn.theme { color: var(--theme-dark); border: 2px solid var(--theme-color); }
-  .sub-history-btn.amber { color: #8A6416; border: 2px solid var(--amber); }
-  .sub-history-btn:active { background: var(--theme-light); }
+  .sub-btn.theme { color: var(--theme-dark); border: 2px solid var(--theme-color); }
+  .sub-btn.amber { color: #8A6416; border: 2px solid var(--amber); }
+  .sub-btn:active { background: var(--theme-light); }
+  .sub-btn .material-icons { font-size: 15px; }
 
   .result {
     margin-top: 14px; padding: 13px 16px; border-radius: var(--card-radius); font-size: 13.5px;
@@ -143,6 +145,13 @@
   }
   .cal-day.checked { background: var(--theme-color); color: #fff; border-color: var(--theme-color); }
   .cal-day.empty { visibility: hidden; }
+
+  .bulk-header-row {
+    display: flex; align-items: center; gap: 6px; padding: 4px 0 8px;
+    font-size: 11px; font-weight: bold; color: var(--theme-dark);
+  }
+  .bulk-header-row .bulk-day-spacer { width: 62px; flex-shrink: 0; }
+  .bulk-header-row span:not(.bulk-day-spacer) { flex: 1; text-align: center; }
 
   .bulk-row {
     display: flex; align-items: center; gap: 6px; padding: 8px 0; border-bottom: 1px dashed #eee;
@@ -204,7 +213,20 @@
         </div>
       </div>
       <button id="submitBtn" class="in-card-btn">登録する</button>
-      <button id="historyBtn" class="sub-history-btn theme"><span class="material-icons">fact_check</span>選択月の入力状況を確認</button>
+
+      <div class="sub-btn-row">
+        <button id="bulkBtn" class="sub-btn theme"><span class="material-icons">edit_calendar</span>一括入力</button>
+        <button id="historyBtn" class="sub-btn theme"><span class="material-icons">fact_check</span>入力状況確認</button>
+      </div>
+      <div id="bulkContainer" class="history-container">
+        <div class="cal-month-label" id="bulkMonthLabel"></div>
+        <div class="bulk-header-row">
+          <span class="bulk-day-spacer"></span>
+          <span>店</span><span>利宅</span><span>当日</span>
+        </div>
+        <div id="bulkList" style="display:flex; flex-direction:column;"></div>
+        <button id="bulkSubmitBtn" class="in-card-btn">この内容で登録する</button>
+      </div>
       <div id="historyContainer" class="history-container">
         <div id="historyContent"></div>
       </div>
@@ -229,7 +251,20 @@
         </div>
       </div>
       <button id="attendanceSubmitBtn" class="in-card-btn" style="background:var(--amber);">出勤・ヘルプ人数を登録</button>
-      <button id="attendanceHistoryBtn" class="sub-history-btn amber"><span class="material-icons">fact_check</span>選択月の入力状況を確認</button>
+
+      <div class="sub-btn-row">
+        <button id="attendanceBulkBtn" class="sub-btn amber"><span class="material-icons">edit_calendar</span>一括入力</button>
+        <button id="attendanceHistoryBtn" class="sub-btn amber"><span class="material-icons">fact_check</span>入力状況確認</button>
+      </div>
+      <div id="attendanceBulkContainer" class="history-container">
+        <div class="cal-month-label" id="attendanceBulkMonthLabel"></div>
+        <div class="bulk-header-row">
+          <span class="bulk-day-spacer"></span>
+          <span>出勤</span><span>ヘルプ</span>
+        </div>
+        <div id="attendanceBulkList" style="display:flex; flex-direction:column;"></div>
+        <button id="attendanceBulkSubmitBtn" class="in-card-btn" style="background:var(--amber);">この内容で登録する</button>
+      </div>
       <div id="attendanceHistoryContainer" class="history-container">
         <div id="attendanceHistoryContent"></div>
       </div>
@@ -244,17 +279,10 @@
       <div id="holidayCalendar" style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:12px;"></div>
       <button id="holidaySubmitBtn" class="in-card-btn">選択した日を休日にする</button>
     </div>
-
-    <button id="bulkBtn" class="outer-btn"><span class="material-icons">edit_calendar</span>一括件数入力</button>
-    <div id="bulkContainer" class="history-container">
-      <div class="cal-month-label" id="bulkMonthLabel"></div>
-      <div id="bulkList" style="display:flex; flex-direction:column;"></div>
-      <button id="bulkSubmitBtn" class="in-card-btn">この内容で登録する</button>
-    </div>
   </div>
 
 <script>
-  const API_URL = 'https://script.google.com/macros/s/AKfycbybeQ6GjTnpjULthP_6eyK3PazA2LSQ0OKZiWpD3PC4xQSDFGQf9qcfhluD7-VvWPZXAg/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbx3b48uRkhc2EPkN-DD13DB0WOdAQKtGAnGXwqEtc3e6voOcNObPlN-wCgcUzVPPiRFmg/exec';
   const GOOGLE_CLIENT_ID = '10544617656-amo7voanjtnl8pj88kvg269ihq4c8gcq.apps.googleusercontent.com';
   const DEFAULT_CENTER = '天理';
 
@@ -377,9 +405,9 @@
     const btn = document.getElementById('historyBtn');
 
     if (container.style.display === 'none' || container.style.display === '') {
+      document.getElementById('bulkContainer').style.display = 'none';
       container.style.display = 'block';
       content.innerHTML = '<div style="text-align:center;color:#888;padding:10px;">読み込み中...</div>';
-      btn.innerHTML = '<span class="material-icons">expand_less</span>入力を閉じる';
 
       const center = document.getElementById('center').value;
       const memberName = document.getElementById('memberName').value;
@@ -431,18 +459,17 @@
       }
     } else {
       container.style.display = 'none';
-      btn.innerHTML = '<span class="material-icons">fact_check</span>選択月の入力状況を確認';
     }
   }
 
-  document.getElementById('memberName').addEventListener('change', resetHistoryUI);
-  document.getElementById('dateStr').addEventListener('change', resetHistoryUI);
+  document.getElementById('memberName').addEventListener('change', resetSubUI);
+  document.getElementById('dateStr').addEventListener('change', resetSubUI);
 
-  function resetHistoryUI() {
+  function resetSubUI() {
     document.getElementById('historyContainer').style.display = 'none';
-    document.getElementById('historyBtn').innerHTML = '<span class="material-icons">fact_check</span>選択月の入力状況を確認';
+    document.getElementById('bulkContainer').style.display = 'none';
     document.getElementById('attendanceHistoryContainer').style.display = 'none';
-    document.getElementById('attendanceHistoryBtn').innerHTML = '<span class="material-icons">fact_check</span>選択月の入力状況を確認';
+    document.getElementById('attendanceBulkContainer').style.display = 'none';
   }
 
   // ===== 出勤・ヘルプ人数フォーム =====
@@ -489,12 +516,11 @@
   async function toggleAttendanceHistory() {
     const container = document.getElementById('attendanceHistoryContainer');
     const content = document.getElementById('attendanceHistoryContent');
-    const btn = document.getElementById('attendanceHistoryBtn');
 
     if (container.style.display === 'none' || container.style.display === '') {
+      document.getElementById('attendanceBulkContainer').style.display = 'none';
       container.style.display = 'block';
       content.innerHTML = '<div style="text-align:center;color:#888;padding:10px;">読み込み中...</div>';
-      btn.innerHTML = '<span class="material-icons">expand_less</span>入力を閉じる';
 
       const center = document.getElementById('center').value;
       const dateStr = document.getElementById('dateStr').value;
@@ -538,7 +564,6 @@
       }
     } else {
       container.style.display = 'none';
-      btn.innerHTML = '<span class="material-icons">fact_check</span>選択月の入力状況を確認';
     }
   }
 
@@ -652,11 +677,12 @@
     btn.disabled = false; btn.innerText = '選択した日を休日にする';
   });
 
-  // ===== 一括件数入力 =====
+  // ===== 一括件数入力(店/利宅/当日) =====
   document.getElementById('bulkBtn').addEventListener('click', () => {
     const container = document.getElementById('bulkContainer');
     if (container.style.display === 'block') { container.style.display = 'none'; return; }
     if (!document.getElementById('memberName').value) { alert('メンバーを選択してください'); return; }
+    document.getElementById('historyContainer').style.display = 'none';
     container.style.display = 'block';
     renderBulkList();
   });
@@ -718,13 +744,7 @@
     const btn = document.getElementById('bulkSubmitBtn');
     btn.disabled = true; btn.innerText = '登録中...';
 
-    const data = {
-      type: 'bulk',
-      center: document.getElementById('center').value,
-      memberName,
-      month,
-      entries
-    };
+    const data = { type: 'bulk', center: document.getElementById('center').value, memberName, month, entries };
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
@@ -734,6 +754,77 @@
       const json = await res.json();
       alert(json.ok ? json.data.detail : 'エラー: ' + json.error);
       if (json.ok) document.getElementById('bulkContainer').style.display = 'none';
+    } catch(err) {
+      alert('通信エラー: ' + err.message);
+    }
+    btn.disabled = false; btn.innerText = 'この内容で登録する';
+  });
+
+  // ===== 一括入力(出勤/ヘルプ人数) =====
+  document.getElementById('attendanceBulkBtn').addEventListener('click', () => {
+    const container = document.getElementById('attendanceBulkContainer');
+    if (container.style.display === 'block') { container.style.display = 'none'; return; }
+    document.getElementById('attendanceHistoryContainer').style.display = 'none';
+    container.style.display = 'block';
+    renderAttendanceBulkList();
+  });
+
+  function renderAttendanceBulkList(){
+    const dateStr = document.getElementById('dateStr').value;
+    const baseDate = new Date(dateStr);
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+    const lastDate = new Date(year, month+1, 0).getDate();
+    const weekdayNames = ['日','月','火','水','木','金','土'];
+
+    document.getElementById('attendanceBulkMonthLabel').innerText = year + '年' + (month+1) + '月';
+
+    const list = document.getElementById('attendanceBulkList');
+    list.innerHTML = '';
+    for(let d=1; d<=lastDate; d++){
+      const wd = new Date(year, month, d).getDay();
+      const row = document.createElement('div');
+      row.className = 'bulk-row';
+      row.dataset.day = d;
+      row.innerHTML =
+        '<div class="bulk-day">' + d + '日(' + weekdayNames[wd] + ')</div>' +
+        '<select class="bulk-attendance">' + blankCountOptions() + '</select>' +
+        '<select class="bulk-helpcount">' + blankCountOptions() + '</select>';
+      list.appendChild(row);
+    }
+  }
+
+  document.getElementById('attendanceBulkSubmitBtn').addEventListener('click', async () => {
+    const dateStr = document.getElementById('dateStr').value;
+    const baseDate = new Date(dateStr);
+    const month = baseDate.getMonth() + 1;
+
+    const rows = document.querySelectorAll('#attendanceBulkList .bulk-row');
+    const entries = [];
+    rows.forEach(row => {
+      const attendance = row.querySelector('.bulk-attendance').value;
+      const helpCount = row.querySelector('.bulk-helpcount').value;
+      if (attendance !== '' || helpCount !== '') {
+        entries.push({ day: Number(row.dataset.day), attendance, helpCount });
+      }
+    });
+
+    if (entries.length === 0) { alert('入力された日がありません'); return; }
+    if (!confirm(entries.length + '日分を登録します。よろしいですか？')) return;
+
+    const btn = document.getElementById('attendanceBulkSubmitBtn');
+    btn.disabled = true; btn.innerText = '登録中...';
+
+    const data = { type: 'bulkAttendance', center: document.getElementById('center').value, month, entries };
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      alert(json.ok ? json.data.detail : 'エラー: ' + json.error);
+      if (json.ok) document.getElementById('attendanceBulkContainer').style.display = 'none';
     } catch(err) {
       alert('通信エラー: ' + err.message);
     }
