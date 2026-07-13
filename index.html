@@ -120,7 +120,7 @@
   .history-container {
     margin-top: 10px; background: #fff; border-radius: var(--card-radius);
     padding: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.05); display: none;
-    max-height: 400px; overflow-y: auto;
+    max-height: 420px; overflow-y: auto;
   }
   .history-item {
     display: flex; justify-content: space-between; align-items: center;
@@ -150,17 +150,26 @@
     display: flex; align-items: center; gap: 6px; padding: 4px 0 8px;
     font-size: 11px; font-weight: bold; color: var(--theme-dark);
   }
-  .bulk-header-row .bulk-day-spacer { width: 62px; flex-shrink: 0; }
+  .bulk-header-row .bulk-day-spacer { width: 78px; flex-shrink: 0; }
   .bulk-header-row span:not(.bulk-day-spacer) { flex: 1; text-align: center; }
 
   .bulk-row {
     display: flex; align-items: center; gap: 6px; padding: 8px 0; border-bottom: 1px dashed #eee;
   }
   .bulk-row .bulk-day {
-    width: 62px; font-size: 12px; font-weight: bold; color: var(--theme-dark); flex-shrink: 0;
+    width: 78px; font-size: 11.5px; font-weight: bold; color: var(--theme-dark); flex-shrink: 0;
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
   }
   .bulk-row select {
     min-height: 40px; padding: 8px 2px; font-size: 13px; border-radius: 10px; text-align: center;
+  }
+  .bulk-badge { font-size: 9px; font-weight: bold; padding: 1px 4px; border-radius: 4px; white-space: nowrap; }
+  .bulk-badge.holiday { background: #eee; color: #999; }
+  .bulk-badge.pending { background: #fce8e6; color: #d93025; }
+  .bulk-badge.done { background: #ceead6; color: #188038; }
+  select.changed {
+    border-color: #d93025 !important; background: #fdeaea !important;
+    color: #a33; font-weight: bold;
   }
 </style>
 </head>
@@ -236,7 +245,7 @@
     <div id="attendanceCard" class="card" style="display:none; border-top-color: var(--amber);">
       <div class="card-title-row">
         <div class="card-title"><span class="material-icons">groups</span>出勤・ヘルプ人数</div>
-        <button id="clearSundayBtn" class="icon-btn amber" title="今月の日曜(未入力分)を空欄にする">
+        <button id="clearSundayBtn" class="icon-btn amber" title="今月の日曜・祝日(未入力分)を空欄にする">
           <span class="material-icons">weekend</span>
         </button>
       </div>
@@ -282,7 +291,7 @@
   </div>
 
 <script>
-  const API_URL = 'https://script.google.com/macros/s/AKfycbx3b48uRkhc2EPkN-DD13DB0WOdAQKtGAnGXwqEtc3e6voOcNObPlN-wCgcUzVPPiRFmg/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzWs9eCkediy3eFvMu0KHYNOx0-624vJIo08juoFb1yTWG-H199Bq_Lx7SxoltmHfJUJg/exec';
   const GOOGLE_CLIENT_ID = '10544617656-amo7voanjtnl8pj88kvg269ihq4c8gcq.apps.googleusercontent.com';
   const DEFAULT_CENTER = '天理';
 
@@ -331,7 +340,7 @@
     memberSel.innerHTML = '';
     if(!json.ok || json.data.length === 0){
       memberSel.innerHTML = '<option value="">見つかりません</option>';
-      updateAttendanceVisibility();
+      await updateAttendanceVisibility();
       return;
     }
     json.data.forEach(name => {
@@ -347,7 +356,7 @@
         memberSel.value = savedName;
       }
     }
-    updateAttendanceVisibility();
+    await updateAttendanceVisibility();
   }
 
   document.getElementById('center').addEventListener('change', loadMembers);
@@ -402,7 +411,6 @@
   async function toggleHistory() {
     const container = document.getElementById('historyContainer');
     const content = document.getElementById('historyContent');
-    const btn = document.getElementById('historyBtn');
 
     if (container.style.display === 'none' || container.style.display === '') {
       document.getElementById('bulkContainer').style.display = 'none';
@@ -473,17 +481,16 @@
   }
 
   // ===== 出勤・ヘルプ人数フォーム =====
-  let attendanceAllowedList = [];
-  async function loadAttendanceAllowed() {
-    const res = await fetch(API_URL + '?action=attendanceAllowed');
-    const json = await res.json();
-    if (json.ok) attendanceAllowedList = json.data;
-    updateAttendanceVisibility();
-  }
-  function updateAttendanceVisibility() {
+  async function updateAttendanceVisibility() {
+    const center = document.getElementById('center').value;
     const memberName = document.getElementById('memberName').value;
-    document.getElementById('attendanceCard').style.display =
-      attendanceAllowedList.includes(memberName) ? 'block' : 'none';
+    if (!memberName) {
+      document.getElementById('attendanceCard').style.display = 'none';
+      return;
+    }
+    const res = await fetch(API_URL + '?action=attendanceAllowed&center=' + encodeURIComponent(center) + '&memberName=' + encodeURIComponent(memberName));
+    const json = await res.json();
+    document.getElementById('attendanceCard').style.display = (json.ok && json.data) ? 'block' : 'none';
   }
   document.getElementById('memberName').addEventListener('change', updateAttendanceVisibility);
 
@@ -567,21 +574,14 @@
     }
   }
 
-  // ===== 日曜一括空欄化 =====
+  // ===== 日曜・祝日一括空欄化 =====
   document.getElementById('clearSundayBtn').addEventListener('click', async () => {
     const dateStr = document.getElementById('dateStr').value;
     const baseDate = new Date(dateStr);
     const year = baseDate.getFullYear();
-    const month = baseDate.getMonth();
-    const lastDate = new Date(year, month + 1, 0).getDate();
+    const month = baseDate.getMonth() + 1;
 
-    const sundays = [];
-    for (let d = 1; d <= lastDate; d++) {
-      if (new Date(year, month, d).getDay() === 0) sundays.push(d);
-    }
-    if (sundays.length === 0) { alert('この月に日曜日がありません'); return; }
-
-    if (!confirm((month + 1) + '月の日曜(' + sundays.length + '日)のうち、未入力(0/0)の日を空欄にします。よろしいですか？')) return;
+    if (!confirm(month + '月の日曜・祝日のうち、未入力(0/0)の日を空欄にします。よろしいですか？')) return;
 
     const btn = document.getElementById('clearSundayBtn');
     btn.disabled = true;
@@ -589,7 +589,7 @@
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ type: 'clearSundays', center: document.getElementById('center').value, month: month + 1, days: sundays })
+        body: JSON.stringify({ type: 'clearSundays', center: document.getElementById('center').value, year, month })
       });
       const json = await res.json();
       alert(json.ok ? json.data.detail : 'エラー: ' + json.error);
@@ -599,7 +599,7 @@
     btn.disabled = false;
   });
 
-  // ===== 休日登録カレンダー =====
+  // ===== 休日登録カレンダー(日曜デフォルトON) =====
   document.getElementById('holidayBtn').addEventListener('click', () => {
     const container = document.getElementById('holidayContainer');
     if (container.style.display === 'block') {
@@ -631,6 +631,8 @@
     for (let d = 1; d <= lastDate; d++) {
       const cell = document.createElement('div');
       cell.className = 'cal-day';
+      const wd = new Date(year, month, d).getDay();
+      if (wd === 0) cell.classList.add('checked');
       cell.innerText = d;
       cell.dataset.day = d;
       cell.addEventListener('click', () => cell.classList.toggle('checked'));
@@ -678,6 +680,14 @@
   });
 
   // ===== 一括件数入力(店/利宅/当日) =====
+  function countOptionsWithSelected(origVal){
+    let html = '<option value=""' + (origVal === '' ? ' selected' : '') + '>-</option>';
+    for(let i=0;i<=10;i++){
+      html += '<option value="' + i + '"' + (origVal === String(i) ? ' selected' : '') + '>' + i + '</option>';
+    }
+    return html;
+  }
+
   document.getElementById('bulkBtn').addEventListener('click', () => {
     const container = document.getElementById('bulkContainer');
     if (container.style.display === 'block') { container.style.display = 'none'; return; }
@@ -687,13 +697,7 @@
     renderBulkList();
   });
 
-  function blankCountOptions(){
-    let html = '<option value="">-</option>';
-    for(let i=0;i<=10;i++) html += `<option value="${i}">${i}</option>`;
-    return html;
-  }
-
-  function renderBulkList(){
+  async function renderBulkList(){
     const dateStr = document.getElementById('dateStr').value;
     const baseDate = new Date(dateStr);
     const year = baseDate.getFullYear();
@@ -703,19 +707,50 @@
 
     document.getElementById('bulkMonthLabel').innerText = year + '年' + (month+1) + '月';
 
+    const center = document.getElementById('center').value;
+    const memberName = document.getElementById('memberName').value;
     const list = document.getElementById('bulkList');
+    list.innerHTML = '<div style="text-align:center;color:#888;padding:10px;">読み込み中...</div>';
+
+    const res = await fetch(API_URL + '?action=history&center=' + encodeURIComponent(center) + '&memberName=' + encodeURIComponent(memberName) + '&date=' + encodeURIComponent(dateStr));
+    const json = await res.json();
+    const dataByDay = {};
+    if (json.ok) json.data.forEach(item => { dataByDay[item.day] = item; });
+
     list.innerHTML = '';
     for(let d=1; d<=lastDate; d++){
       const wd = new Date(year, month, d).getDay();
+      const item = dataByDay[d];
       const row = document.createElement('div');
       row.className = 'bulk-row';
       row.dataset.day = d;
+
+      let badge = '';
+      let origStore = '', origRiyaku = '', origTojitsu = '';
+      if (item) {
+        if (item.status === '休み') {
+          badge = '<span class="bulk-badge holiday">休</span>';
+        } else if (item.status === '未入力') {
+          badge = '<span class="bulk-badge pending">未</span>';
+          origStore = String(item.store); origRiyaku = String(item.riyaku); origTojitsu = String(item.tojitsu);
+        } else {
+          badge = '<span class="bulk-badge done">済</span>';
+          origStore = String(item.store); origRiyaku = String(item.riyaku); origTojitsu = String(item.tojitsu);
+        }
+      }
+
       row.innerHTML =
-        '<div class="bulk-day">' + d + '日(' + weekdayNames[wd] + ')</div>' +
-        '<select class="bulk-store">' + blankCountOptions() + '</select>' +
-        '<select class="bulk-riyaku">' + blankCountOptions() + '</select>' +
-        '<select class="bulk-tojitsu">' + blankCountOptions() + '</select>';
+        '<div class="bulk-day">' + d + '(' + weekdayNames[wd] + ')' + badge + '</div>' +
+        '<select class="bulk-store" data-orig="' + origStore + '">' + countOptionsWithSelected(origStore) + '</select>' +
+        '<select class="bulk-riyaku" data-orig="' + origRiyaku + '">' + countOptionsWithSelected(origRiyaku) + '</select>' +
+        '<select class="bulk-tojitsu" data-orig="' + origTojitsu + '">' + countOptionsWithSelected(origTojitsu) + '</select>';
       list.appendChild(row);
+
+      row.querySelectorAll('select').forEach(sel => {
+        sel.addEventListener('change', () => {
+          sel.classList.toggle('changed', sel.value !== sel.dataset.orig);
+        });
+      });
     }
   }
 
@@ -726,20 +761,34 @@
     const dateStr = document.getElementById('dateStr').value;
     const baseDate = new Date(dateStr);
     const month = baseDate.getMonth() + 1;
+    const fieldLabel = { store: '店', riyaku: '利宅', tojitsu: '当日' };
 
     const rows = document.querySelectorAll('#bulkList .bulk-row');
     const entries = [];
+    const changeLines = [];
+
     rows.forEach(row => {
-      const store = row.querySelector('.bulk-store').value;
-      const riyaku = row.querySelector('.bulk-riyaku').value;
-      const tojitsu = row.querySelector('.bulk-tojitsu').value;
-      if (store !== '' || riyaku !== '' || tojitsu !== '') {
-        entries.push({ day: Number(row.dataset.day), store, riyaku, tojitsu });
-      }
+      const day = row.dataset.day;
+      const fields = { store: row.querySelector('.bulk-store'), riyaku: row.querySelector('.bulk-riyaku'), tojitsu: row.querySelector('.bulk-tojitsu') };
+      const entry = { day: Number(day), store: '', riyaku: '', tojitsu: '' };
+      let changed = false;
+      Object.entries(fields).forEach(([key, sel]) => {
+        if (sel.classList.contains('changed')) {
+          entry[key] = sel.value;
+          changed = true;
+          const from = sel.dataset.orig === '' ? '未' : sel.dataset.orig;
+          const to = sel.value === '' ? '未' : sel.value;
+          changeLines.push(day + '日 ' + fieldLabel[key] + ':' + from + '→' + to);
+        }
+      });
+      if (changed) entries.push(entry);
     });
 
-    if (entries.length === 0) { alert('入力された日がありません'); return; }
-    if (!confirm(entries.length + '日分を登録します。よろしいですか？')) return;
+    if (entries.length === 0) { alert('変更された項目がありません'); return; }
+
+    let confirmMsg = '以下の変更を登録します。よろしいですか？\n\n' + changeLines.slice(0, 15).join('\n');
+    if (changeLines.length > 15) confirmMsg += '\n…他' + (changeLines.length - 15) + '件';
+    if (!confirm(confirmMsg)) return;
 
     const btn = document.getElementById('bulkSubmitBtn');
     btn.disabled = true; btn.innerText = '登録中...';
@@ -769,7 +818,7 @@
     renderAttendanceBulkList();
   });
 
-  function renderAttendanceBulkList(){
+  async function renderAttendanceBulkList(){
     const dateStr = document.getElementById('dateStr').value;
     const baseDate = new Date(dateStr);
     const year = baseDate.getFullYear();
@@ -779,18 +828,48 @@
 
     document.getElementById('attendanceBulkMonthLabel').innerText = year + '年' + (month+1) + '月';
 
+    const center = document.getElementById('center').value;
     const list = document.getElementById('attendanceBulkList');
+    list.innerHTML = '<div style="text-align:center;color:#888;padding:10px;">読み込み中...</div>';
+
+    const res = await fetch(API_URL + '?action=attendanceHistory&center=' + encodeURIComponent(center) + '&date=' + encodeURIComponent(dateStr));
+    const json = await res.json();
+    const dataByDay = {};
+    if (json.ok) json.data.forEach(item => { dataByDay[item.day] = item; });
+
     list.innerHTML = '';
     for(let d=1; d<=lastDate; d++){
       const wd = new Date(year, month, d).getDay();
+      const item = dataByDay[d];
       const row = document.createElement('div');
       row.className = 'bulk-row';
       row.dataset.day = d;
+
+      let badge = '';
+      let origAtt = '', origHelp = '';
+      if (item) {
+        if (item.status === '休み') {
+          badge = '<span class="bulk-badge holiday">休</span>';
+        } else if (item.status === '未入力') {
+          badge = '<span class="bulk-badge pending">未</span>';
+          origAtt = String(item.attendance); origHelp = String(item.helpCount);
+        } else {
+          badge = '<span class="bulk-badge done">済</span>';
+          origAtt = String(item.attendance); origHelp = String(item.helpCount);
+        }
+      }
+
       row.innerHTML =
-        '<div class="bulk-day">' + d + '日(' + weekdayNames[wd] + ')</div>' +
-        '<select class="bulk-attendance">' + blankCountOptions() + '</select>' +
-        '<select class="bulk-helpcount">' + blankCountOptions() + '</select>';
+        '<div class="bulk-day">' + d + '(' + weekdayNames[wd] + ')' + badge + '</div>' +
+        '<select class="bulk-attendance" data-orig="' + origAtt + '">' + countOptionsWithSelected(origAtt) + '</select>' +
+        '<select class="bulk-helpcount" data-orig="' + origHelp + '">' + countOptionsWithSelected(origHelp) + '</select>';
       list.appendChild(row);
+
+      row.querySelectorAll('select').forEach(sel => {
+        sel.addEventListener('change', () => {
+          sel.classList.toggle('changed', sel.value !== sel.dataset.orig);
+        });
+      });
     }
   }
 
@@ -798,19 +877,34 @@
     const dateStr = document.getElementById('dateStr').value;
     const baseDate = new Date(dateStr);
     const month = baseDate.getMonth() + 1;
+    const fieldLabel = { attendance: '出勤', helpCount: 'ヘルプ' };
 
     const rows = document.querySelectorAll('#attendanceBulkList .bulk-row');
     const entries = [];
+    const changeLines = [];
+
     rows.forEach(row => {
-      const attendance = row.querySelector('.bulk-attendance').value;
-      const helpCount = row.querySelector('.bulk-helpcount').value;
-      if (attendance !== '' || helpCount !== '') {
-        entries.push({ day: Number(row.dataset.day), attendance, helpCount });
-      }
+      const day = row.dataset.day;
+      const fields = { attendance: row.querySelector('.bulk-attendance'), helpCount: row.querySelector('.bulk-helpcount') };
+      const entry = { day: Number(day), attendance: '', helpCount: '' };
+      let changed = false;
+      Object.entries(fields).forEach(([key, sel]) => {
+        if (sel.classList.contains('changed')) {
+          entry[key] = sel.value;
+          changed = true;
+          const from = sel.dataset.orig === '' ? '未' : sel.dataset.orig;
+          const to = sel.value === '' ? '未' : sel.value;
+          changeLines.push(day + '日 ' + fieldLabel[key] + ':' + from + '→' + to);
+        }
+      });
+      if (changed) entries.push(entry);
     });
 
-    if (entries.length === 0) { alert('入力された日がありません'); return; }
-    if (!confirm(entries.length + '日分を登録します。よろしいですか？')) return;
+    if (entries.length === 0) { alert('変更された項目がありません'); return; }
+
+    let confirmMsg = '以下の変更を登録します。よろしいですか？\n\n' + changeLines.slice(0, 15).join('\n');
+    if (changeLines.length > 15) confirmMsg += '\n…他' + (changeLines.length - 15) + '件';
+    if (!confirm(confirmMsg)) return;
 
     const btn = document.getElementById('attendanceBulkSubmitBtn');
     btn.disabled = true; btn.innerText = '登録中...';
@@ -882,7 +976,6 @@
 
   window.addEventListener('load', async function() {
     await loadCenters();
-    loadAttendanceAllowed();
 
     const savedCenter = localStorage.getItem('lastMatchedCenter');
     const savedName = localStorage.getItem('lastMatchedMember');
