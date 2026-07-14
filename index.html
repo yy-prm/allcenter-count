@@ -47,6 +47,9 @@
   }
   .card-title .material-icons { font-size: 16px; color: var(--theme-color); }
 
+  .tap-icon { cursor: pointer; user-select: none; transition: transform 0.15s; }
+  .tap-icon:active { transform: scale(1.3); }
+
   .icon-btn {
     width: 28px; height: 28px; border-radius: 50%; border: none;
     background: var(--theme-light); color: var(--theme-dark);
@@ -205,7 +208,7 @@
 
     <div class="card">
       <div class="card-title-row">
-        <div class="card-title"><span class="material-icons">local_shipping</span>件数</div>
+        <div class="card-title"><span class="material-icons tap-icon" id="countIcon">local_shipping</span>件数</div>
       </div>
       <div class="count-row">
         <div class="field">
@@ -224,7 +227,7 @@
       <button id="submitBtn" class="in-card-btn">登録する</button>
 
       <div class="sub-btn-row">
-        <button id="bulkBtn" class="sub-btn theme"><span class="material-icons">edit_calendar</span>一括入力</button>
+        <button id="bulkBtn" class="sub-btn theme" style="display:none;"><span class="material-icons">edit_calendar</span>一括入力</button>
         <button id="historyBtn" class="sub-btn theme"><span class="material-icons">fact_check</span>入力状況確認</button>
       </div>
       <div id="bulkContainer" class="history-container">
@@ -244,7 +247,7 @@
 
     <div id="attendanceCard" class="card" style="display:none; border-top-color: var(--amber);">
       <div class="card-title-row">
-        <div class="card-title"><span class="material-icons">groups</span>出勤・ヘルプ人数</div>
+        <div class="card-title"><span class="material-icons tap-icon" id="attendanceIcon">groups</span>出勤・ヘルプ人数</div>
         <button id="clearSundayBtn" class="icon-btn amber" title="今月の日曜・祝日(未入力分)を空欄にする">
           <span class="material-icons">weekend</span>
         </button>
@@ -262,7 +265,7 @@
       <button id="attendanceSubmitBtn" class="in-card-btn" style="background:var(--amber);">出勤・ヘルプ人数を登録</button>
 
       <div class="sub-btn-row">
-        <button id="attendanceBulkBtn" class="sub-btn amber"><span class="material-icons">edit_calendar</span>一括入力</button>
+        <button id="attendanceBulkBtn" class="sub-btn amber" style="display:none;"><span class="material-icons">edit_calendar</span>一括入力</button>
         <button id="attendanceHistoryBtn" class="sub-btn amber"><span class="material-icons">fact_check</span>入力状況確認</button>
       </div>
       <div id="attendanceBulkContainer" class="history-container">
@@ -924,6 +927,30 @@
     }
     btn.disabled = false; btn.innerText = 'この内容で登録する';
   });
+
+  // ===== 隠しコマンド: アイコン5回タップで一括入力ボタンを表示/非表示 =====
+  function setupSecretTap(iconId, targetBtnId){
+    let tapCount = 0;
+    let tapTimer = null;
+    const icon = document.getElementById(iconId);
+    icon.addEventListener('click', () => {
+      tapCount++;
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => { tapCount = 0; }, 1500);
+      if (tapCount >= 5) {
+        tapCount = 0;
+        const btn = document.getElementById(targetBtnId);
+        const isHidden = btn.style.display === 'none';
+        btn.style.display = isHidden ? 'flex' : 'none';
+        if (!isHidden) {
+          const containerId = targetBtnId === 'bulkBtn' ? 'bulkContainer' : 'attendanceBulkContainer';
+          document.getElementById(containerId).style.display = 'none';
+        }
+      }
+    });
+  }
+  setupSecretTap('countIcon', 'bulkBtn');
+  setupSecretTap('attendanceIcon', 'attendanceBulkBtn');
 
   // ===== Googleログイン関連(センター+名前を自動選択) =====
   function decodeJwt(token) {
